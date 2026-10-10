@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DAIGON | Official Store</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+.cairo{font-family:'Cairo',sans-serif}
+body{background:#050505;color:white}
+</style>
+</head>
+<body class="min-h-screen bg-[#050505] text-white antialiased">
+<div id="app" class="min-h-screen"></div>
+<script>
+const DEFAULT_PRODUCTS = [
+{id:"1",name_en:"HEAVYWEIGHT HOODIE BLACK",name_ar:"هودي هيفي ويت أسود",price:850,oldPrice:1100,sizes:["M","L","XL","XXL"],category:"Hoodies",sku:"DGN-HW-01",material:"100% Cotton • 400 GSM",stock:12,image:"https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=800&q=80",colors:["#111111","#F5F3EF","#556B2F"],colorImages:{}},
+{id:"2",name_en:"CARGO PANTS OLIVE",name_ar:"بنطلون كارجو زيتي",price:750,sizes:["30","32","34","36"],category:"Pants",sku:"DGN-CG-02",material:"Cotton Twill",stock:9,image:"https://images.unsplash.com/photo-1517438476312-10d79c077509?auto=format&fit=crop&w=800&q=80",colors:["#6B705C","#111111","#F5F3EF"],colorImages:{}},
+{id:"3",name_en:"OVERSIZED TEE WHITE",name_ar:"تيشيرت أوفرسايز أبيض",price:450,sizes:["M","L","XL"],category:"Tees",sku:"DGN-TS-03",material:"100% Cotton",stock:18,image:"https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80",colors:["#FFFFFF","#111111","#C9A86A","#556B2F","#8B1E2D"],colorImages:{}},
+{id:"4",name_en:"DAIGON SNEAKERS 01",name_ar:"سنيكرز دايجون 01",price:1200,sizes:["41","42","43","44"],category:"Sneakers",sku:"DGN-SN-04",material:"Textile / Rubber",stock:6,image:"https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80",colors:["#FFFFFF","#111111","#C9A86A"],colorImages:{}},
+{id:"5",name_en:"TACTICAL PUFFER VEST",name_ar:"فيست باف تكتيكال",price:950,sizes:["M","L","XL"],category:"Outer",sku:"DGN-VE-05",material:"Puffer Shell",stock:7,image:"https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=800&q=80",colors:["#111111","#556B2F","#C9A86A"],colorImages:{}},
+{id:"6",name_en:"WIDE LEG DENIM INDIGO",name_ar:"بنطلون جينز وايد ليج",price:800,sizes:["30","32","34","36"],category:"Denim",sku:"DGN-DN-06",material:"Denim",stock:10,image:"https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=800&q=80",colors:["#264653","#111111","#F5F3EF"],colorImages:{}},
+{id:"7",name_en:"BOX LOGO HOODIE CREAM",name_ar:"هودي بوكس لوجو كريمي",price:850,sizes:["M","L","XL","XXL"],category:"Hoodies",sku:"DGN-HW-02",material:"100% Cotton",stock:5,image:"https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80",colors:["#F5F3EF","#111111"],colorImages:{}},
+{id:"8",name_en:"TECH PANTS BLACK",name_ar:"بنطلون تك أسود",price:900,sizes:["30","32","34"],category:"Pants",sku:"DGN-TP-08",material:"Tech Fabric",stock:8,image:"https://images.unsplash.com/photo-1582555172866-fad39d475bb6?auto=format&fit=crop&w=800&q=80",colors:["#111111","#556B2F"],colorImages:{}}
+];
+
+function getStoredPassword(){
+  return localStorage.getItem('daigon_admin_password') || "Daigon123";
+}
+
+let state = {
+ lang: localStorage.getItem('daigon_lang')||'ar',
+ products: (()=>{try{const v=localStorage.getItem('daigon_products_v5'); return v?JSON.parse(v):DEFAULT_PRODUCTS}catch{return DEFAULT_PRODUCTS}})(),
+ isAdmin: localStorage.getItem('daigon_isAdmin')==='1',
+ showLogin:false,
+ showProductModal:false,
+ showChangePass:false,
+ showPassword:false,
+ showOldPass:false,
+ showNewPass:false,
+ editingProduct:null,
+ deleteConfirmId:null,
+ showEditConfirm:false,
+ selectedColors: JSON.parse(localStorage.getItem('daigon_selected_colors')||'{}'),
+ toast:null,
+ filter:'All',
+ passwordInput:'',
+ oldPassInput:'',
+ newPassInput:'',
+ confirmNewPassInput:''
+};
+
+function saveProducts(){ localStorage.setItem('daigon_products_v5', JSON.stringify(state.products)); }
+function saveSelected(){ localStorage.setItem('daigon_selected_colors', JSON.stringify(state.selectedColors)); }
+function toast(msg){ state.toast=msg; render(); setTimeout(()=>{state.toast=null; render();},3000); }
+
+function selectColor(productId, color, e){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  state.selectedColors[productId]=color;
+  saveSelected();
+  const imgEl = document.querySelector(`[data-product-img="${productId}"]`);
+  const overlayEl = document.querySelector(`[data-product-overlay="${productId}"]`);
+  const prod = state.products.find(p=>p.id===productId);
+  if(imgEl){
+    const customImg = prod.colorImages && prod.colorImages[color];
+    if(customImg){ imgEl.src = customImg; if(overlayEl) overlayEl.style.display='none'; }
+    else {
+      imgEl.src = prod.image;
+      if(overlayEl){ overlayEl.style.display='block'; overlayEl.style.backgroundColor=color; }
+    }
+  }
+  document.querySelectorAll(`[data-color-btn="${productId}"]`).forEach(btn=>{
+    btn.classList.remove('border-white','scale-110','ring-2');
+    btn.classList.add('border-white/20');
+    if(btn.dataset.color===color){ btn.classList.add('border-white','scale-110','ring-2','ring-white/20'); btn.classList.remove('border-white/20'); }
+  });
+}
+
+function openEdit(p){ state.editingProduct = JSON.parse(JSON.stringify(p)); if(!state.editingProduct.colorImages) state.editingProduct.colorImages={}; state.showProductModal = true; render(); }
+function openNew(){ state.editingProduct = {id:Date.now().toString(),name_en:"",name_ar:"",price:0,oldPrice:0,sizes:["M","L","XL"],category:"Hoodies",sku:"",material:"",stock:10,image:"",colors:["#111111","#FFFFFF"],colorImages:{}}; state.showProductModal = true; render(); }
+function saveProduct(){
+  const p = state.editingProduct;
+  if(!p.name_en || !p.name_ar || !p.price){toast('املأ البيانات'); return;}
+  state.showEditConfirm=true; render();
+}
+function confirmSaveEdit(){
+  const p = state.editingProduct;
+  const idx = state.products.findIndex(x=>x.id===p.id);
+  if(idx>=0) state.products[idx]=p; else state.products.unshift(p);
+  saveProducts();
+  state.showEditConfirm=false; state.showProductModal=false; state.editingProduct=null;
+  toast('تم حفظ المنتج'); render();
+}
+function cancelSaveEdit(){ state.showEditConfirm=false; render(); }
+function confirmDelete(id){ state.deleteConfirmId=id; render(); }
+function doDelete(){ state.products = state.products.filter(p=>p.id!==state.deleteConfirmId); saveProducts(); state.deleteConfirmId=null; toast('تم الحذف'); render(); }
+
+function onPassInput(val){
+  state.passwordInput = val;
+  const real = getStoredPassword();
+  const statusEl = document.getElementById('passStatus');
+  if(statusEl){
+    if(!val){ statusEl.textContent=''; statusEl.className='mb-3 text-center text-[12px] font-bold text-white/30'; }
+    else if(val === real){ statusEl.textContent='صح ✅'; statusEl.className='mb-3 text-center text-[12px] font-bold text-green-400'; }
+    else { statusEl.textContent='غلط ❌'; statusEl.className='mb-3 text-center text-[12px] font-bold text-red-400'; }
+  }
+}
+function toggleShowPass(){
+  state.showPassword = !state.showPassword;
+  const input = document.getElementById('passInput');
+  if(input){
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.type = state.showPassword ? 'text' : 'password';
+    // restore focus and cursor without full render
+    input.focus();
+    try{ input.setSelectionRange(start,end); }catch(e){}
+    // update eye button
+    const eyeBtn = input.parentElement.querySelector('button');
+    if(eyeBtn) eyeBtn.textContent = state.showPassword ? '🙈' : '👁️';
+  } else {
+    render();
+  }
+}
+
+function login(){
+  const real = getStoredPassword();
+  if(state.passwordInput.trim() === real){
+    state.isAdmin=true;
+    localStorage.setItem('daigon_isAdmin','1');
+    state.showLogin=false;
+    state.passwordInput='';
+    state.showPassword=false;
+    toast('تم تفعيل وضع التعديل');
+    render();
+  }else{
+    toast('كلمة السر غلط - حاول تاني أو دوس على العين تشوف كتبت ايه');
+  }
+}
+
+function checkPasswordLive(){
+  const real = getStoredPassword();
+  if(!state.passwordInput) return '';
+  return state.passwordInput === real ? 'صح ✅' : 'غلط ❌';
+}
+
+function openChangePass(){
+  state.showChangePass=true;
+  state.oldPassInput='';
+  state.newPassInput='';
+  state.confirmNewPassInput='';
+  state.showOldPass=false;
+  state.showNewPass=false;
+  render();
+}
+
+function saveNewPassword(){
+  const real = getStoredPassword();
+  if(state.oldPassInput !== real){
+    toast('الباسورد القديم غلط');
+    return;
+  }
+  if(!state.newPassInput || state.newPassInput.length < 4){
+    toast('الباسورد الجديد لازم 4 حروف على الأقل');
+    return;
+  }
+  if(state.newPassInput !== state.confirmNewPassInput){
+    toast('تأكيد الباسورد مش مطابق');
+    return;
+  }
+  localStorage.setItem('daigon_admin_password', state.newPassInput);
+  state.showChangePass=false;
+  toast('تم تغيير الباسورد بنجاح ✅ الباسورد الجديد: ' + state.newPassInput);
+  render();
+}
+
+function render(){
+ const ar = state.lang==='ar';
+ const app = document.getElementById('app');
+ const filtered = state.filter==='All'?state.products:state.products.filter(p=>p.category===state.filter);
+ const cats=['All','Hoodies','Tees','Pants','Caps','Sneakers','Outer','Denim'];
+ const passStatus = checkPasswordLive();
+ app.innerHTML = `
+  <header class="sticky top-0 z-40 backdrop-blur bg-[#050505]/80 border-b border-white/10">
+    <div class="max-w-[1280px] mx-auto px-6 h-[64px] flex items-center justify-between">
+      <div class="font-black tracking-widest text-[20px]">DAIGON</div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="state.lang=state.lang==='ar'?'en':'ar';localStorage.setItem('daigon_lang',state.lang);render()" class="h-8 px-3 rounded-full bg-white/10 text-[12px]">${ar?'EN':'ع'}</button>
+        ${!state.isAdmin?`<button type="button" onclick="state.showLogin=true;render()" class="h-8 px-4 rounded-full bg-[#c9a86a] text-black font-bold text-[11px]">ADMIN</button>`:`<button type="button" onclick="openChangePass()" class="h-8 px-3 rounded-full bg-white/10 border border-white/10 text-[11px]">🔑 تغيير الباسورد</button><span class="text-[10px] px-2 py-1 rounded-full bg-[#c9a86a]/20 text-[#c9a86a] border border-[#c9a86a]/30">EDIT MODE</span><button type="button" onclick="openNew()" class="h-8 px-4 rounded-full bg-white text-black font-bold text-[11px]">${ar?'إضافة':'Add'}</button><button type="button" onclick="localStorage.removeItem('daigon_isAdmin');state.isAdmin=false;render()" class="h-8 px-3 rounded-full bg-white/10 text-[11px]">Exit</button>`}
+      </div>
+    </div>
+  </header>
+  <div class="max-w-[1280px] mx-auto px-6 py-6">
+    <div class="flex gap-2 overflow-auto pb-2">
+      ${cats.map(c=>`<button type="button" onclick="state.filter='${c}';render()" class="h-9 px-4 rounded-full border text-[13px] whitespace-nowrap ${state.filter===c?'bg-white text-black border-white':'bg-white/5 border-white/10 text-white/60'}">${c}</button>`).join('')}
+    </div>
+  </div>
+  <section class="max-w-[1280px] mx-auto px-6 pb-20">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      ${filtered.map(p=>{
+        const selColor = state.selectedColors[p.id] || (p.colors&&p.colors[0]) || '#111111';
+        const hasCustomImg = p.colorImages && p.colorImages[selColor];
+        const displayImg = hasCustomImg ? p.colorImages[selColor] : p.image;
+        return `
+        <div class="group relative rounded-[24px] bg-[#0e0e0e] border border-white/[0.07] overflow-hidden">
+          <div class="relative aspect-[4/3] overflow-hidden bg-[#121212]">
+            <img data-product-img="${p.id}" src="${displayImg}" class="w-full h-full object-cover transition-all duration-500">
+            <div data-product-overlay="${p.id}" class="absolute inset-0 pointer-events-none transition-all duration-500" style="background:${hasCustomImg?'transparent':selColor};opacity:${hasCustomImg?'0':'0.55'};mix-blend-mode:multiply;filter:saturate(1.2);display:${hasCustomImg?'none':'block'}"></div>
+            <div class="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/60 border border-white/10 backdrop-blur">${p.stock>0?p.stock+' متوفر':'نفذ'}</span>
+              ${state.isAdmin?`<div class="flex gap-1.5">
+                <button type="button" data-id="${p.id}" class="edit-btn h-8 px-3 rounded-full bg-white text-black text-[11px] font-bold relative z-20">تعديل</button>
+                <button type="button" data-id="${p.id}" class="delete-btn h-8 px-3 rounded-full bg-red-500 text-white text-[11px] font-bold relative z-20">✕</button>
+              </div>`:''}
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="flex justify-between gap-3"><h3 class="text-[18px] font-bold cairo leading-[1.1]">${ar?p.name_ar:p.name_en}</h3><div class="font-bold shrink-0">${p.price} جنيه</div></div>
+            <div class="mt-4 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] tracking-widest text-white/30 uppercase">الالوان</span>
+                <div class="flex items-center gap-1.5">
+                  ${(p.colors||[]).map(c=>{
+                    const isSel = selColor===c;
+                    return `<button type="button" data-color-btn="${p.id}" data-color="${c}" onclick="selectColor('${p.id}','${c}',event)" class="w-7 h-7 rounded-full border-2 transition-all ${isSel?'border-white scale-110 ring-2 ring-white/20':'border-white/20 hover:border-white/50'}" style="background:${c}"></button>`;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </section>
+
+  ${state.showProductModal && state.editingProduct ? `
+  <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur flex items-center justify-center p-4">
+    <div class="w-full max-w-[520px] rounded-[24px] bg-[#151515] border border-white/10 p-6 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-5"><div class="font-bold">تعديل المنتج</div><button type="button" onclick="state.showProductModal=false;render()" class="w-8 h-8 rounded-full bg-white/10">✕</button></div>
+      <div class="space-y-3">
+        <input value="${state.editingProduct.name_en.replace(/"/g,'&quot;')}" oninput="state.editingProduct.name_en=this.value" placeholder="Name EN *" class="w-full h-11 px-4 rounded-full bg-white/5 border border-white/10 text-[13px]">
+        <input value="${state.editingProduct.name_ar.replace(/"/g,'&quot;')}" oninput="state.editingProduct.name_ar=this.value" placeholder="اسم المنتج *" class="w-full h-11 px-4 rounded-full bg-white/5 border border-white/10 text-[13px] cairo">
+        <div class="grid grid-cols-2 gap-3">
+          <input type="number" value="${state.editingProduct.price}" oninput="state.editingProduct.price=Number(this.value)" placeholder="Price" class="w-full h-11 px-4 rounded-full bg-white/5 border border-white/10 text-[13px]">
+          <input type="number" value="${state.editingProduct.stock}" oninput="state.editingProduct.stock=Number(this.value)" placeholder="Stock" class="w-full h-11 px-4 rounded-full bg-white/5 border border-white/10 text-[13px]">
+        </div>
+        <input value="${state.editingProduct.image}" oninput="state.editingProduct.image=this.value" placeholder="Image URL" class="w-full h-11 px-4 rounded-full bg-white/5 border border-white/10 text-[13px]">
+        <div class="p-3 rounded-[16px] bg-white/5 border border-white/10">
+          <label class="text-[11px] text-white/40 uppercase mb-2 block">الوان (افصل بفاصلة)</label>
+          <input value="${(state.editingProduct.colors||[]).join(', ')}" oninput="state.editingProduct.colors=this.value.split(',').map(s=>s.trim()).filter(Boolean)" placeholder="#111111, #FFFFFF" class="w-full h-11 px-4 rounded-full bg-black/30 border border-white/10 text-[13px] mb-2">
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="saveProduct()" class="flex-1 h-11 rounded-full bg-[#c9a86a] text-black font-bold text-[13px]">حفظ المنتج</button>
+          <button type="button" onclick="state.showProductModal=false;render()" class="h-11 px-6 rounded-full bg-white/10 text-[13px]">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  </div>` : ''}
+
+  ${state.showLogin?`
+  <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur flex items-center justify-center p-4">
+    <div class="w-full max-w-[380px] rounded-[24px] bg-[#151515] border border-white/10 p-6">
+      <div class="font-bold mb-4 text-[16px]">Admin Login</div>
+      <div class="relative mb-3">
+        <input type="${state.showPassword?'text':'password'}" id="passInput" value="${state.passwordInput}" oninput="onPassInput(this.value)" placeholder="كلمة السر" class="w-full h-12 ps-4 pe-12 rounded-full bg-white/5 border border-white/10 text-[13px] outline-none focus:border-[#c9a86a]/40" onkeydown="if(event.key==='Enter') login()" autofocus>
+        <button type="button" onclick="toggleShowPass()" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/10 grid place-items-center text-[14px] hover:bg-white/15 transition">
+          ${state.showPassword?'🙈':'👁️'}
+        </button>
+      </div>
+      <div id="passStatus" class="mb-3 text-center text-[12px] font-bold ${passStatus.includes('صح')?'text-green-400':passStatus.includes('غلط')?'text-red-400':'text-white/30'}">${state.passwordInput?passStatus:''}</div>
+      <div class="flex gap-2">
+        <button type="button" onclick="login()" class="flex-1 h-12 rounded-full bg-white text-black font-bold text-[13px] hover:bg-white/90 transition">دخول</button>
+        <button type="button" onclick="state.showLogin=false;state.showPassword=false;render()" class="h-12 px-6 rounded-full bg-white/10 text-[13px]">إغلاق</button>
+      </div>
+      <div class="mt-4 p-3 rounded-[12px] bg-[#c9a86a]/10 border border-[#c9a86a]/20">
+        <div class="text-[11px] text-[#c9a86a] font-bold mb-1">💡 تلميح:</div>
+        <div class="text-[11px] text-white/60">دوس على العين 👁️ عشان تشوف الباسورد، واكتب مرة واحدة براحتك - مش هيقطع الكتابة تاني</div>
+      </div>
+    </div>
+  </div>` : ''}
+
+  ${state.showChangePass?`
+  <div class="fixed inset-0 z-[60] bg-black/80 backdrop-blur flex items-center justify-center p-4">
+    <div class="w-full max-w-[400px] rounded-[24px] bg-[#151515] border border-white/10 p-6">
+      <div class="flex justify-between items-center mb-5">
+        <div class="font-bold text-[16px]">🔑 تغيير الباسورد</div>
+        <button type="button" onclick="state.showChangePass=false;render()" class="w-8 h-8 rounded-full bg-white/10">✕</button>
+      </div>
+      <div class="space-y-3">
+        <div class="relative">
+          <input type="${state.showOldPass?'text':'password'}" value="${state.oldPassInput}" oninput="state.oldPassInput=this.value" placeholder="الباسورد القديم" class="w-full h-11 ps-4 pe-10 rounded-full bg-white/5 border border-white/10 text-[13px] outline-none">
+          <button type="button" onclick="state.showOldPass=!state.showOldPass;render()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 grid place-items-center text-[12px]">${state.showOldPass?'🙈':'👁️'}</button>
+        </div>
+        <div class="relative">
+          <input type="${state.showNewPass?'text':'password'}" value="${state.newPassInput}" oninput="state.newPassInput=this.value" placeholder="الباسورد الجديد" class="w-full h-11 ps-4 pe-10 rounded-full bg-white/5 border border-white/10 text-[13px] outline-none">
+          <button type="button" onclick="state.showNewPass=!state.showNewPass;render()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 grid place-items-center text-[12px]">${state.showNewPass?'🙈':'👁️'}</button>
+        </div>
+        <input type="password" value="${state.confirmNewPassInput}" oninput="state.confirmNewPassInput=this.value" placeholder="تأكيد الباسورد الجديد" class="w-full h-11 px-4 rounded-full bg-white/5 border border-white/10 text-[13px] outline-none">
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="saveNewPassword()" class="flex-1 h-11 rounded-full bg-[#c9a86a] text-black font-bold text-[13px]">حفظ الباسورد الجديد</button>
+          <button type="button" onclick="state.showChangePass=false;render()" class="h-11 px-5 rounded-full bg-white/10 text-[13px]">إلغاء</button>
+        </div>
+        <div class="text-[10px] text-white/30 text-center mt-2">الباسورد الحالي: ${getStoredPassword()}</div>
+      </div>
+    </div>
+  </div>` : ''}
+
+  ${state.showEditConfirm?`
+  <div class="fixed inset-0 z-[70] bg-black/80 backdrop-blur flex items-center justify-center p-4">
+    <div class="w-full max-w-[360px] rounded-[24px] bg-[#1a1a1a] border border-white/10 p-6 text-center">
+      <div class="font-bold mb-2">هل تريد حفظ التعديل؟</div>
+      <div class="flex gap-2 mt-5">
+        <button type="button" onclick="confirmSaveEdit()" class="flex-1 h-11 rounded-full bg-[#c9a86a] text-black font-bold text-[13px]">نعم</button>
+        <button type="button" onclick="cancelSaveEdit()" class="flex-1 h-11 rounded-full bg-white/10 text-[13px]">لا</button>
+      </div>
+    </div>
+  </div>` : ''}
+
+  ${state.deleteConfirmId?`
+  <div class="fixed inset-0 z-[60] bg-black/70 backdrop-blur flex items-center justify-center p-4">
+    <div class="w-full max-w-[360px] rounded-[24px] bg-[#1a1a1a] border border-white/10 p-6 text-center">
+      <div class="font-bold mb-2">متأكد تحذف المنتج؟</div>
+      <div class="flex gap-2 mt-4"><button type="button" onclick="doDelete()" class="flex-1 h-11 rounded-full bg-red-500 text-white font-bold">نعم - حذف</button><button type="button" onclick="state.deleteConfirmId=null;render()" class="flex-1 h-11 rounded-full bg-white/10">لا</button></div>
+    </div>
+  </div>` : ''}
+
+  ${state.toast?`<div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] px-5 h-10 rounded-full bg-white text-black text-[12px] font-bold grid place-items-center shadow-lg">${state.toast}</div>`:''}
+  `;
+
+  document.querySelectorAll('.edit-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); const prod = state.products.find(p=>p.id===btn.dataset.id); if(prod) openEdit(prod); }, {capture:true});
+  });
+  document.querySelectorAll('.delete-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); confirmDelete(btn.dataset.id); }, {capture:true});
+  });
+}
+render();
+window.openEdit=openEdit; window.openNew=openNew; window.saveProduct=saveProduct;
+window.confirmSaveEdit=confirmSaveEdit; window.cancelSaveEdit=cancelSaveEdit;
+window.confirmDelete=confirmDelete; window.doDelete=doDelete;
+window.login=login; window.selectColor=selectColor; window.state=state;
+window.openChangePass=openChangePass; window.saveNewPassword=saveNewPassword;
+</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
+</html>
